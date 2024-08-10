@@ -1,5 +1,7 @@
 #include "entities/entities.hpp"
 
+#include <stdexcept>
+
 #define LEVEL_WIDTH 744  // 750
 #define LEVEL_HEIGHT 504 // 500
 
@@ -64,13 +66,13 @@ int main() {
     const int platform_height = 12;
 
     /* Mixer */
-    const int music_volume = 12;
+    const int music_volume = MIX_MAX_VOLUME;
     const int chunksize = 1024;
 
     /* Paths to the assets of the game */
     const char *player_path = "assets/art/player.png";
     const char *wall_path = "assets/art/wall.png";
-    const char *music_path = "assets/music/lost.ogg";
+    const char *music_path = "assets/music/downhill.ogg";
     const char *platform_path = "assets/art/platform.png";
 
     /* Initialize SDL, window, audio, and renderer */
@@ -78,7 +80,8 @@ int main() {
         SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER); // Initialize SDL library
 
     if (sdl_status == -1) {
-        printf("SDL_Init: %s\n", SDL_GetError());
+        std::string debug_msg = "SDL_Init: " + static_cast<std::string>(SDL_GetError());
+        std::runtime_error(debug_msg.c_str());
     }
 
     SDL_GameController *gamecontroller =
@@ -86,7 +89,7 @@ int main() {
 
     // Create window
     SDL_Window *win =
-        SDL_CreateWindow("Myzdin", SDL_WINDOWPOS_CENTERED,
+        SDL_CreateWindow("2D Platformer", SDL_WINDOWPOS_CENTERED,
                          SDL_WINDOWPOS_CENTERED, LEVEL_WIDTH, LEVEL_HEIGHT, 0);
 
     int open_audio_status =
@@ -94,7 +97,8 @@ int main() {
                       chunksize); // Initialize SDL mixer
 
     if (open_audio_status == -1) {
-        printf("Mix_OpenAudio: %s\n", Mix_GetError());
+        std::string debug_msg = "Mix_OpenAudio: " + static_cast<std::string>(Mix_GetError());
+        std::runtime_error(debug_msg.c_str());
     }
 
     // Creates a renderer to render the images
@@ -106,9 +110,32 @@ int main() {
     /* Loads images, music, and soundeffects */
     // Creates the asset that loads the image into main memory
     SDL_Surface *PlayerSurf = IMG_Load(player_path);
+
+    if (PlayerSurf == NULL) {
+        std::string debug_msg = "IMG_Load: " + static_cast<std::string>(IMG_GetError());
+        std::runtime_error(debug_msg.c_str());
+    }
+
     SDL_Surface *WallSurf = IMG_Load(wall_path);
+
+    if (WallSurf == NULL) {
+        std::string debug_msg = "IMG_Load: " + static_cast<std::string>(IMG_GetError());
+        std::runtime_error(debug_msg.c_str());
+    }
+
     SDL_Surface *PlatformSurf = IMG_Load(platform_path);
+
+    if (PlatformSurf == NULL) {
+        std::string debug_msg = "IMG_Load: " + static_cast<std::string>(IMG_GetError());
+        std::runtime_error(debug_msg.c_str());
+    }
+
     Mix_Music *music = Mix_LoadMUS(music_path);
+
+    if (music == NULL) {
+        std::string debug_msg = "Mix_LoadMUS: " + static_cast<std::string>(Mix_GetError());
+        std::runtime_error(debug_msg.c_str());
+    }
 
     // Loads images to our graphics hardware memory
     // Player
@@ -133,6 +160,12 @@ int main() {
 
     // Wall
     SDL_Texture *WallTex = SDL_CreateTextureFromSurface(rend, WallSurf);
+
+    if (WallTex == NULL) {
+        std::string debug_msg = "SDL_CreateTextureFromSurface: " + static_cast<std::string>(SDL_GetError());
+        std::runtime_error(debug_msg.c_str());
+    }
+
     SDL_Rect w_dstrect = {LEVEL_WIDTH - 200, LEVEL_HEIGHT - 200, wall_width,
                           wall_height};
 
@@ -144,6 +177,12 @@ int main() {
 
     // Platform
     SDL_Texture *PlatformTex = SDL_CreateTextureFromSurface(rend, PlatformSurf);
+
+    if (PlatformTex == NULL) {
+        std::string debug_msg = "SDL_CreateTextureFromSurface: " + static_cast<std::string>(SDL_GetError());
+        std::runtime_error(debug_msg.c_str());
+    }
+
     SDL_Rect pl_dstrect = {LEVEL_WIDTH - 200, LEVEL_HEIGHT - 200,
                            platform_width, platform_height};
 
@@ -240,7 +279,8 @@ int main() {
         Mix_PlayMusic(music, -1); // Start background music (-1 means infinity)
 
     if (player_music_status == -1) {
-        printf("Mix_PlayMusic: %s\n", Mix_GetError());
+        std::string debug_msg = "Mix_PlayMusic: " + static_cast<std::string>(Mix_GetError());
+        std::runtime_error(debug_msg.c_str());
     }
 
     /* Gameplay Loop */
