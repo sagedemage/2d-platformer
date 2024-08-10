@@ -4,13 +4,7 @@ project(2DPlatformer)
 
 set(HEADER_FILES src/pch/myzdin-pch.h)
 
-set(SOURCE_FILES 
-    src/main.cpp
-    src/keybindings/keybindings.cpp
-    src/engine/collision.cpp
-    src/engine/physics.cpp
-    ${HEADER_FILES}
-    )
+file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.hpp")
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
