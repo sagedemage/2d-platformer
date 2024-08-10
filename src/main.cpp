@@ -162,7 +162,7 @@ int main() {
     SDL_Texture *WallTex = SDL_CreateTextureFromSurface(rend, WallSurf);
 
     if (WallTex == NULL) {
-        std::string debug_msg = "Mix_LoadMUS: " + static_cast<std::string>(SDL_GetError());
+        std::string debug_msg = "SDL_CreateTextureFromSurface: " + static_cast<std::string>(SDL_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
@@ -179,7 +179,7 @@ int main() {
     SDL_Texture *PlatformTex = SDL_CreateTextureFromSurface(rend, PlatformSurf);
 
     if (PlatformTex == NULL) {
-        std::string debug_msg = "Mix_LoadMUS: " + static_cast<std::string>(SDL_GetError());
+        std::string debug_msg = "SDL_CreateTextureFromSurface: " + static_cast<std::string>(SDL_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
