@@ -1,4 +1,7 @@
-#include "entities/entities.hpp"
+#include "engine/entities.hpp"
+#include "engine/collision.hpp"
+#include "engine/physics.hpp"
+#include "keybindings/keybindings.hpp"
 
 #include <stdexcept>
 
@@ -9,35 +12,12 @@
 const int miliseconds = 1000;   // 1000 ms equals 1s
 const int gameplay_frames = 60; // amount of frames per second
 
-struct CollisionState {
-    bool on_the_floor;
-    bool on_the_platform;
-};
-
-struct MotionState {
-    bool jump;
-    bool drop;
-    int jump_frames;
-    int drop_frames;
-};
-
 void playerBoundary(Player *player);
-
-void holdKeybindings(Player *player, SDL_GameController *gamecontroller);
 
 void renderSprites(SDL_Renderer *rend, Player player, Wall walls[45],
                    Platform platforms[14]);
 
 void setPosition(SDL_Rect *dstrect, int x, int y);
-
-void gravity(Player *player);
-void jumpPhysics(Player *player, MotionState *jumpState);
-
-void playerPlatformCollision(Player *player, Platform *platform,
-                             CollisionState *collisionState);
-
-void playerWallCollisions(Player *player, Wall walls[45],
-                          CollisionState *collisionState);
 
 void freeAndCloseResources(SDL_Surface *PlayerSurf, SDL_Texture *PlayerTex,
                            SDL_Surface *WallSurf, SDL_Texture *WallTex,
@@ -47,8 +27,6 @@ void freeAndCloseResources(SDL_Surface *PlayerSurf, SDL_Texture *PlayerTex,
 void playerObjectCollisions(Player *player, Wall walls[45],
                             Platform platforms[14],
                             CollisionState *collisionState);
-
-//
 
 int main() {
     /* Player Attributes */
@@ -80,7 +58,8 @@ int main() {
         SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER); // Initialize SDL library
 
     if (sdl_status == -1) {
-        std::string debug_msg = "SDL_Init: " + static_cast<std::string>(SDL_GetError());
+        std::string debug_msg =
+            "SDL_Init: " + static_cast<std::string>(SDL_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
@@ -97,7 +76,8 @@ int main() {
                       chunksize); // Initialize SDL mixer
 
     if (open_audio_status == -1) {
-        std::string debug_msg = "Mix_OpenAudio: " + static_cast<std::string>(Mix_GetError());
+        std::string debug_msg =
+            "Mix_OpenAudio: " + static_cast<std::string>(Mix_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
@@ -112,28 +92,32 @@ int main() {
     SDL_Surface *PlayerSurf = IMG_Load(player_path);
 
     if (PlayerSurf == NULL) {
-        std::string debug_msg = "IMG_Load: " + static_cast<std::string>(IMG_GetError());
+        std::string debug_msg =
+            "IMG_Load: " + static_cast<std::string>(IMG_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
     SDL_Surface *WallSurf = IMG_Load(wall_path);
 
     if (WallSurf == NULL) {
-        std::string debug_msg = "IMG_Load: " + static_cast<std::string>(IMG_GetError());
+        std::string debug_msg =
+            "IMG_Load: " + static_cast<std::string>(IMG_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
     SDL_Surface *PlatformSurf = IMG_Load(platform_path);
 
     if (PlatformSurf == NULL) {
-        std::string debug_msg = "IMG_Load: " + static_cast<std::string>(IMG_GetError());
+        std::string debug_msg =
+            "IMG_Load: " + static_cast<std::string>(IMG_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
     Mix_Music *music = Mix_LoadMUS(music_path);
 
     if (music == NULL) {
-        std::string debug_msg = "Mix_LoadMUS: " + static_cast<std::string>(Mix_GetError());
+        std::string debug_msg =
+            "Mix_LoadMUS: " + static_cast<std::string>(Mix_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
@@ -144,25 +128,32 @@ int main() {
                           LEVEL_HEIGHT - player_height - player_offset,
                           player_width, player_height};
     SDL_Rect p_srcrect = {0, 0, player_width, player_height};
+
+    MotionState motionState;
+    motionState.jump = false;
+    motionState.jump_frames = 0;
+    motionState.dropdown = false;
+    motionState.dropdown_frames = 0;
+
+    CollisionState collisionState;
+    collisionState.on_the_floor = false;
+    collisionState.on_the_platform = false;
+
     Player player;
     player.dstrect = p_dstrect;
     player.srcrect = p_srcrect;
     player.speed = player_speed;
     player.PlayerTex = PlayerTex;
     player.accel = player_accel;
-    MotionState motionState;
-    motionState.jump = false;
-    motionState.jump_frames = 0;
-    motionState.drop = false;
-    motionState.drop_frames = 0;
-
-    CollisionState collisionState;
+    player.motionState = motionState;
+    player.collisionState = collisionState;
 
     // Wall
     SDL_Texture *WallTex = SDL_CreateTextureFromSurface(rend, WallSurf);
 
     if (WallTex == NULL) {
-        std::string debug_msg = "SDL_CreateTextureFromSurface: " + static_cast<std::string>(SDL_GetError());
+        std::string debug_msg = "SDL_CreateTextureFromSurface: " +
+                                static_cast<std::string>(SDL_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
@@ -179,7 +170,8 @@ int main() {
     SDL_Texture *PlatformTex = SDL_CreateTextureFromSurface(rend, PlatformSurf);
 
     if (PlatformTex == NULL) {
-        std::string debug_msg = "SDL_CreateTextureFromSurface: " + static_cast<std::string>(SDL_GetError());
+        std::string debug_msg = "SDL_CreateTextureFromSurface: " +
+                                static_cast<std::string>(SDL_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
@@ -279,57 +271,24 @@ int main() {
         Mix_PlayMusic(music, -1); // Start background music (-1 means infinity)
 
     if (player_music_status == -1) {
-        std::string debug_msg = "Mix_PlayMusic: " + static_cast<std::string>(Mix_GetError());
+        std::string debug_msg =
+            "Mix_PlayMusic: " + static_cast<std::string>(Mix_GetError());
         std::runtime_error(debug_msg.c_str());
     }
 
     /* Gameplay Loop */
-    // GamePlay(rend, player, gamecontroller); // Start movement and physics
     bool quit = false; // gameplay loop switch
 
 #pragma unroll
     while (!quit) { // gameplay loop
-        /* Keybindings */
-        // quit = ClickKeybindings(quit); // Click
-
         /* Click Key Bindings */
         SDL_Event event; // Event handling
 
 #pragma unroll
         while (SDL_PollEvent(&event) == 1) { // Events management
-            switch (event.type) {
-            case SDL_QUIT: // close button
-                quit = true;
-                break;
-            case SDL_KEYDOWN: // key press
-                if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-                    quit = true;
-                }
-                break;
-            case SDL_KEYUP:
-                if (event.key.keysym.scancode == SDL_SCANCODE_UP &&
-                    collisionState.on_the_floor == true) {
-                    // Player jumps
-                    motionState.jump = true;
-                    collisionState.on_the_floor = false;
-                    collisionState.on_the_platform = false;
-                } else if (event.key.keysym.scancode == SDL_SCANCODE_DOWN &&
-                           collisionState.on_the_platform == true &&
-                           collisionState.on_the_floor == true) {
-                    // Player jumps
-                    motionState.drop = true;
-                    collisionState.on_the_floor = false;
-                    collisionState.on_the_platform = false;
-                }
-                break;
-            case SDL_CONTROLLERBUTTONDOWN: // controller button press
-                if (event.cbutton.button == SDL_CONTROLLER_BUTTON_START) {
-                    quit = true;
-                }
-                break;
-            default:
-                break;
-            }
+            // Click Keybindings
+            quit = clickKeybindings(event, &player.motionState,
+                                    &player.collisionState);
         }
 
         /* Hold Keybindings */
@@ -345,21 +304,14 @@ int main() {
         gravity(&player);
 
         /* Jump physics */
-        jumpPhysics(&player, &motionState);
+        jumpPhysics(&player, &player.motionState);
 
         /* Drop physics */
-        if (motionState.drop == true) {
-            player.dstrect.y += player.accel;
-            motionState.drop_frames += 1;
-        }
-
-        if (motionState.drop_frames == 5) {
-            motionState.drop = false;
-            motionState.drop_frames = 0;
-        }
+        dropdownPhysics(&player, &player.motionState);
 
         /* Player wall collisons */
-        playerObjectCollisions(&player, walls, platforms, &collisionState);
+        playerObjectCollisions(&player, walls, platforms,
+                               &player.collisionState);
     }
 
     /* Free resources and close SDL and SDL mixer */
@@ -387,36 +339,6 @@ void playerBoundary(Player *player) {
     if (player->dstrect.y < 0) {
         player->dstrect.y = 0;
     }
-}
-
-void holdKeybindings(Player *player, SDL_GameController *gamecontroller) {
-    /* Hold Keybindings */
-    // Get the snapshot of the current state of the keyboard
-    const Uint8 *state = SDL_GetKeyboardState(NULL);
-
-    int left_dpad = SDL_GameControllerGetButton(
-        gamecontroller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
-    int right_dpad = SDL_GameControllerGetButton(
-        gamecontroller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
-    /*int down_dpad = SDL_GameControllerGetButton(
-        gamecontroller, SDL_CONTROLLER_BUTTON_DPAD_DOWN);*/
-    int up_dpad = SDL_GameControllerGetButton(gamecontroller,
-                                              SDL_CONTROLLER_BUTTON_DPAD_UP);
-
-    if (state[SDL_SCANCODE_LEFT] == 1 || left_dpad == 1) { // move player left
-        player->dstrect.x -= player->speed;
-    } else if (state[SDL_SCANCODE_RIGHT] == 1 ||
-               right_dpad == 1) { // move player right
-        player->dstrect.x += player->speed;
-
-    } else if (state[SDL_SCANCODE_UP] == 1 || up_dpad == 1) { // move player up
-        // player->dstrect.y -= player->accel*8;
-    }
-
-    /*else if (state[SDL_SCANCODE_DOWN] == 1 ||
-               down_dpad == 1) { // move player down
-        player->dstrect.y += player->speed;
-    }*/
 }
 
 void renderSprites(SDL_Renderer *rend, Player player, Wall walls[45],
@@ -559,145 +481,6 @@ void renderSprites(SDL_Renderer *rend, Player player, Wall walls[45],
 void setPosition(SDL_Rect *dstrect, int x, int y) {
     dstrect->x = x;
     dstrect->y = y;
-}
-
-void gravity(Player *player) { player->dstrect.y += player->accel; }
-
-void jumpPhysics(Player *player, MotionState *motionState) {
-    /* Jump physics */
-    if (motionState->jump == true) {
-        player->dstrect.y -= player->accel * 2;
-        motionState->jump_frames += 1;
-    }
-
-    if (motionState->jump_frames == 15) {
-        motionState->jump = false;
-        motionState->jump_frames = 0;
-    }
-}
-
-void playerWallCollision(Player *player, Wall *wall,
-                         CollisionState *collisionState) {
-    int offset = 5;
-    /* X Axis Collision */
-    if (player->dstrect.y > wall->dstrect.y + offset &&
-        player->dstrect.y < wall->dstrect.y + 24 - offset) {
-        if (player->dstrect.x + 24 > wall->dstrect.x &&
-            player->dstrect.x + 24 < wall->dstrect.x + 24) {
-            // left collision
-            player->dstrect.x -= player->speed;
-        } else if (player->dstrect.x < wall->dstrect.x + 24 &&
-                   player->dstrect.x > wall->dstrect.x) {
-            // right collision
-            player->dstrect.x += player->speed;
-        }
-    }
-
-    else if (player->dstrect.y + 24 > wall->dstrect.y + offset &&
-             player->dstrect.y + 24 < wall->dstrect.y + 24 - offset) {
-        if (player->dstrect.x + 24 > wall->dstrect.x &&
-            player->dstrect.x + 24 < wall->dstrect.x + 24) {
-            // left collision
-            player->dstrect.x -= player->speed;
-        } else if (player->dstrect.x < wall->dstrect.x + 24 &&
-                   player->dstrect.x > wall->dstrect.x) {
-            // right collision
-            player->dstrect.x += player->speed;
-        }
-    }
-
-    else if (player->dstrect.y + 24 / 2 > wall->dstrect.y &&
-             player->dstrect.y + 24 / 2 < wall->dstrect.y + 24) {
-        if (player->dstrect.x + 24 > wall->dstrect.x &&
-            player->dstrect.x + 24 < wall->dstrect.x + 24) {
-            // left collision
-            player->dstrect.x -= player->speed;
-        } else if (player->dstrect.x < wall->dstrect.x + 24 &&
-                   player->dstrect.x > wall->dstrect.x) {
-            // right collision
-            player->dstrect.x += player->speed;
-        }
-    }
-
-    /* Y Axis Collision */
-    if (player->dstrect.x > wall->dstrect.x &&
-        player->dstrect.x < wall->dstrect.x + 24) {
-        if (player->dstrect.y + 24 > wall->dstrect.y &&
-            player->dstrect.y + 24 < wall->dstrect.y + 24) {
-            // top collision
-            player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-        } else if (player->dstrect.y < wall->dstrect.y + 24 &&
-                   player->dstrect.y > wall->dstrect.y) {
-            // bottom collision
-            player->dstrect.y += player->accel;
-        }
-    }
-
-    else if (player->dstrect.x + 24 > wall->dstrect.x &&
-             player->dstrect.x + 24 < wall->dstrect.x + 24) {
-        if (player->dstrect.y + 24 > wall->dstrect.y &&
-            player->dstrect.y + 24 < wall->dstrect.y + 24) {
-            // top collision
-            player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-        } else if (player->dstrect.y < wall->dstrect.y + 24 &&
-                   player->dstrect.y > wall->dstrect.y) {
-            // bottom collision
-            player->dstrect.y += player->accel;
-        }
-    }
-
-    else if (player->dstrect.x + 24 / 2 > wall->dstrect.x &&
-             player->dstrect.x + 24 / 2 < wall->dstrect.x + 24) {
-        if (player->dstrect.y + 24 > wall->dstrect.y &&
-            player->dstrect.y + 24 < wall->dstrect.y + 24) {
-            // top collision
-            player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-        } else if (player->dstrect.y < wall->dstrect.y + 24 &&
-                   player->dstrect.y > wall->dstrect.y) {
-            // bottom collision
-            player->dstrect.y += player->accel;
-        }
-    }
-}
-
-void playerPlatformCollision(Player *player, Platform *platform,
-                             CollisionState *collisionState) {
-    /* Y Axis Collision */
-    if (player->dstrect.x > platform->dstrect.x &&
-        player->dstrect.x < platform->dstrect.x + 24) {
-        if (player->dstrect.y + 24 > platform->dstrect.y &&
-            player->dstrect.y + 24 < platform->dstrect.y + 2 * player->accel) {
-            // top collision
-            player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-            collisionState->on_the_platform = true;
-        }
-    }
-
-    else if (player->dstrect.x + 24 > platform->dstrect.x &&
-             player->dstrect.x + 24 < platform->dstrect.x + 24) {
-        if (player->dstrect.y + 24 > platform->dstrect.y &&
-            player->dstrect.y + 24 < platform->dstrect.y + 2 * player->accel) {
-            // top collision
-            player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-            collisionState->on_the_platform = true;
-        }
-    }
-
-    else if (player->dstrect.x + 24 / 2 > platform->dstrect.x &&
-             player->dstrect.x + 24 / 2 < platform->dstrect.x + 25) {
-        if (player->dstrect.y + 24 > platform->dstrect.y &&
-            player->dstrect.y + 24 < platform->dstrect.y + 2 * player->accel) {
-            // top collision
-            player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-            collisionState->on_the_platform = true;
-        }
-    }
 }
 
 void playerObjectCollisions(Player *player, Wall walls[45],
