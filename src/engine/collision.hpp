@@ -1,7 +1,7 @@
 #ifndef COLLISION_H
 #define COLLISION_H
 
-#include "entities.hpp"
+#include "engine/entities.hpp"
 
 void playerPlatformCollision(Player *player, Platform *platform,
                              CollisionState *collisionState);

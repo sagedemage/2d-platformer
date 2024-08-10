@@ -1,4 +1,4 @@
-#include "../engine/entities.hpp"
+#include "engine/entities.hpp"
 
 bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState *collisionState);
 

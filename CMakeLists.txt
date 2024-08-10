@@ -24,6 +24,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STANDARD_CXX_VERSION_FLAG} ${OPTIMIZE_
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
+target_include_directories(${PROJECT_NAME} PUBLIC include)
+
 target_link_libraries(${PROJECT_NAME} -lSDL2 -lSDL2_mixer -lSDL2_image)
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE ${HEADER_FILES})

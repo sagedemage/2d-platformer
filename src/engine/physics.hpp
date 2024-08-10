@@ -1,7 +1,8 @@
 #ifndef PHYSICS_H
 #define PHYSICS_H
 
-#include "entities.hpp"
+#include "engine/entities.hpp"
+#include "physics.hpp"
 
 void gravity(Player *player);
 void jumpPhysics(Player *player, MotionState *jumpState);
