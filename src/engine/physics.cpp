@@ -1,4 +1,4 @@
-#include "../entities/entities.hpp"
+#include "entities.hpp"
 
 void gravity(Player *player) { player->dstrect.y += player->accel; }
 

@@ -1,4 +1,4 @@
-#include "../entities/entities.hpp"
+#include "collision.hpp"
 
 void playerWallCollision(Player *player, Wall *wall,
                          CollisionState *collisionState) {

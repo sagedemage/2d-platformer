@@ -7,8 +7,8 @@ set(HEADER_FILES src/pch/myzdin-pch.h)
 set(SOURCE_FILES 
     src/main.cpp
     src/keybindings/keybindings.cpp
-    src/collision/collision.cpp
-    src/physics/physics.cpp
+    src/engine/collision.cpp
+    src/engine/physics.cpp
     ${HEADER_FILES}
     )
 

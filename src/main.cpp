@@ -1,7 +1,7 @@
-#include "entities/entities.hpp"
+#include "engine/entities.hpp"
+#include "engine/collision.hpp"
+#include "engine/physics.hpp"
 #include "keybindings/keybindings.hpp"
-#include "collision/collision.hpp"
-#include "physics/physics.hpp"
 
 #include <stdexcept>
 
