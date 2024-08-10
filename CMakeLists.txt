@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22 VERSION 0.1.0)
 
 project(2DPlatformer)
 
-set(HEADER_FILES src/pch/myzdin-pch.h)
+set(HEADER_FILES src/pch/myzdin-pch.hpp)
 
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.hpp")
 
