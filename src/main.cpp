@@ -132,8 +132,6 @@ int main() {
     MotionState motionState;
     motionState.jump = false;
     motionState.jump_frames = 0;
-    motionState.dropdown = false;
-    motionState.dropdown_frames = 0;
 
     CollisionState collisionState;
     collisionState.on_the_floor = false;
@@ -288,7 +286,7 @@ int main() {
         while (SDL_PollEvent(&event) == 1) { // Events management
             // Click Keybindings
             quit = clickKeybindings(event, &player.motionState,
-                                    &player.collisionState);
+                                    &player.collisionState, &player.dstrect, player.accel);
         }
 
         /* Hold Keybindings */
@@ -305,9 +303,6 @@ int main() {
 
         /* Jump physics */
         jumpPhysics(&player, &player.motionState);
-
-        /* Drop physics */
-        dropdownPhysics(&player, &player.motionState);
 
         /* Player wall collisons */
         playerObjectCollisions(&player, walls, platforms,

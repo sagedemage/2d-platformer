@@ -14,16 +14,3 @@ void jumpPhysics(Player *player, MotionState *motionState) {
         motionState->jump_frames = 0;
     }
 }
-
-void dropdownPhysics(Player *player, MotionState *motionState) {
-    /* Drop physics */
-    if (motionState->dropdown == true) {
-        player->dstrect.y += player->accel;
-        motionState->dropdown_frames += 1;
-    }
-
-    if (motionState->dropdown_frames == 2) {
-        motionState->dropdown = false;
-        motionState->dropdown_frames = 0;
-    }
-}
