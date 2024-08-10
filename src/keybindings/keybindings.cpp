@@ -1,6 +1,6 @@
 #include "keybindings.hpp"
 
-bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState *collisionState) {
+bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState *collisionState, SDL_Rect *dstrect, int accel) {
     bool quit = false;
     // Click Keybindings
     switch (event.type) {
@@ -22,8 +22,8 @@ bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState 
         } else if (event.key.keysym.scancode == SDL_SCANCODE_DOWN &&
                    collisionState->on_the_platform == true &&
                    collisionState->on_the_floor == true) {
-            // Player drop down
-            motionState->dropdown = true;
+            // Player drops down from the platform
+            dstrect->y += accel;
             collisionState->on_the_floor = false;
             collisionState->on_the_platform = false;
         }
@@ -37,8 +37,8 @@ bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState 
             collisionState->on_the_floor = false;
             collisionState->on_the_platform = false;
         } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
-            // Player drop down
-            motionState->dropdown = true;
+            // Player drops down from the platform
+            dstrect->y += accel;
             collisionState->on_the_floor = false;
             collisionState->on_the_platform = false;
         }

@@ -3,7 +3,7 @@
 
 #include "engine/entities.hpp"
 
-bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState *collisionState);
+bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState *collisionState, SDL_Rect *dstrect, int accel);
 
 void holdKeybindings(Player *player, SDL_GameController *gamecontroller);
 

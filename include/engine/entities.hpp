@@ -8,9 +8,7 @@ typedef struct CollisionState {
 
 typedef struct MotionState {
     bool jump;
-    bool dropdown;
     int jump_frames;
-    int dropdown_frames;
 } MotionState;
 
 typedef struct Player {
