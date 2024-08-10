@@ -1,6 +1,8 @@
 #include "keybindings.hpp"
 
-bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState *collisionState, SDL_Rect *dstrect, int accel) {
+bool clickKeybindings(SDL_Event event, MotionState *motionState,
+                      CollisionState *collisionState, SDL_Rect *dstrect,
+                      int accel) {
     bool quit = false;
     // Click Keybindings
     switch (event.type) {
@@ -31,7 +33,8 @@ bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState 
     case SDL_CONTROLLERBUTTONDOWN: // controller button press
         if (event.cbutton.button == SDL_CONTROLLER_BUTTON_START) {
             quit = true;
-        } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+        } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP &&
+                   collisionState->on_the_floor == true) {
             // Player jumps
             motionState->jump = true;
             collisionState->on_the_floor = false;
@@ -67,4 +70,3 @@ void holdKeybindings(Player *player, SDL_GameController *gamecontroller) {
         player->dstrect.x += player->speed;
     }
 }
-
