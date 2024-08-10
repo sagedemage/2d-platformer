@@ -5,7 +5,10 @@ project(2DPlatformer)
 set(HEADER_FILES src/pch/myzdin-pch.h)
 
 set(SOURCE_FILES 
-    src/main.cpp 
+    src/main.cpp
+    src/keybindings/keybindings.cpp
+    src/collision/collision.cpp
+    src/physics/physics.cpp
     ${HEADER_FILES}
     )
 
