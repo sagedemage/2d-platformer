@@ -1,10 +1,12 @@
-#ifndef KEYBINDINGS_H
-#define KEYBINDINGS_H
+#ifndef KEYBINDINGS_HPP
+#define KEYBINDINGS_HPP
 
 #include "engine/entities.hpp"
 
-bool clickKeybindings(SDL_Event event, MotionState *motionState, CollisionState *collisionState, SDL_Rect *dstrect, int accel);
+bool ClickKeybindings(SDL_Event event, MotionState *motion_state,
+                      CollisionState *collision_state, SDL_Rect *dstrect,
+                      int accel);
 
-void holdKeybindings(Player *player, SDL_GameController *gamecontroller);
+void HoldKeybindings(Player *player, SDL_GameController *gamecontroller);
 
-#endif // KEYBINDINGS_H
+#endif  // KEYBINDINGS_HPP

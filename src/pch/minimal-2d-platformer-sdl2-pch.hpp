@@ -1,5 +1,5 @@
-#ifndef PCH_H
-#define PCH_H
+#ifndef PCH_HPP
+#define PCH_HPP
 
 /* SDL libraries */
 #include <SDL2/SDL.h>
@@ -9,4 +9,4 @@
 /* Other libraries */
 #include <stdbool.h>
 
-#endif // PCH_H
+#endif  // PCH_HPP

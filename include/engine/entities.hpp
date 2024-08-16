@@ -1,5 +1,5 @@
-#ifndef ENTITIES_H
-#define ENTITIES_H
+#ifndef ENTITIES_HPP
+#define ENTITIES_HPP
 
 typedef struct CollisionState {
     bool on_the_floor;
@@ -12,25 +12,25 @@ typedef struct MotionState {
 } MotionState;
 
 typedef struct Player {
-    SDL_Texture *PlayerTex; // player texture
-    int speed;        // horizontal and vertical velocity
-    int accel;        // horizonatal acceleration
-    SDL_Rect srcrect;       // player source from the player spritesheet
-    SDL_Rect dstrect; // player destination
-    CollisionState collisionState;
-    MotionState motionState;
+    SDL_Texture *texture;  // player texture
+    int speed;             // horizontal and vertical velocity
+    int accel;             // horizonatal acceleration
+    SDL_Rect srcrect;      // player source from the player spritesheet
+    SDL_Rect dstrect;      // player destination
+    CollisionState collision_state;
+    MotionState motion_state;
 } Player;
 
 typedef struct Wall {
-    SDL_Texture *WallTex; // player texture
-    SDL_Rect srcrect;       // player source from the player spritesheet
-    SDL_Rect dstrect; // player destination
+    SDL_Texture *texture;  // player texture
+    SDL_Rect srcrect;      // player source from the player spritesheet
+    SDL_Rect dstrect;      // player destination
 } Wall;
 
 typedef struct Platform {
-    SDL_Texture *PlatformTex; // player texture
-    SDL_Rect srcrect;       // player source from the player spritesheet
-    SDL_Rect dstrect; // player destination
+    SDL_Texture *texture;  // player texture
+    SDL_Rect srcrect;      // player source from the player spritesheet
+    SDL_Rect dstrect;      // player destination
 } Platform;
 
-#endif // ENTITIES_H
+#endif  // ENTITIES_HPP
