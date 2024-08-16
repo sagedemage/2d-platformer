@@ -1,5 +1,5 @@
-#ifndef ENTITIES_H
-#define ENTITIES_H
+#ifndef ENTITIES_HPP
+#define ENTITIES_HPP
 
 typedef struct CollisionState {
     bool on_the_floor;
@@ -33,4 +33,4 @@ typedef struct Platform {
     SDL_Rect dstrect;      // player destination
 } Platform;
 
-#endif  // ENTITIES_H
+#endif  // ENTITIES_HPP
