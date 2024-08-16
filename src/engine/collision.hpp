@@ -1,8 +1,6 @@
 #ifndef COLLISION_H
 #define COLLISION_H
 
-#include <array>
-
 #include "engine/entities.hpp"
 
 void PlayerPlatformCollision(Player *player, Platform *platform,
