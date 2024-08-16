@@ -1,16 +1,16 @@
 #include "physics.hpp"
 
-void gravity(Player *player) { player->dstrect.y += player->accel; }
+void Gravity(Player *player) { player->dstrect.y += player->accel; }
 
-void jumpPhysics(Player *player, MotionState *motionState) {
+void JumpPhysics(Player *player, MotionState *motion_state) {
     /* Jump physics */
-    if (motionState->jump == true) {
+    if (motion_state->jump) {
         player->dstrect.y -= player->accel * 2;
-        motionState->jump_frames += 1;
+        motion_state->jump_frames += 1;
     }
 
-    if (motionState->jump_frames == 15) {
-        motionState->jump = false;
-        motionState->jump_frames = 0;
+    if (motion_state->jump_frames == 15) {
+        motion_state->jump = false;
+        motion_state->jump_frames = 0;
     }
 }

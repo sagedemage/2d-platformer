@@ -4,8 +4,7 @@
 #include "engine/entities.hpp"
 #include "physics.hpp"
 
-void gravity(Player *player);
-void jumpPhysics(Player *player, MotionState *jumpState);
-void dropdownPhysics(Player *player, MotionState *jumpState);
+void Gravity(Player *player);
+void JumpPhysics(Player *player, MotionState *motion_state);
 
-#endif // PHYSICS_H
+#endif  // PHYSICS_H

@@ -1,12 +1,14 @@
 #ifndef COLLISION_H
 #define COLLISION_H
 
+#include <array>
+
 #include "engine/entities.hpp"
 
-void playerPlatformCollision(Player *player, Platform *platform,
-                             CollisionState *collisionState);
+void PlayerPlatformCollision(Player *player, Platform *platform,
+                             CollisionState *collision_state);
 
-void playerWallCollision(Player *player, Wall walls[45],
-                          CollisionState *collisionState);
+void PlayerWallCollision(Player *player, Wall *wall,
+                         CollisionState *collision_state);
 
-#endif // COLLISION_H
+#endif  // COLLISION_H

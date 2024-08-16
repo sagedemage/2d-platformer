@@ -1,7 +1,7 @@
 #include "collision.hpp"
 
-void playerWallCollision(Player *player, Wall *wall,
-                         CollisionState *collisionState) {
+void PlayerWallCollision(Player *player, Wall *wall,
+                         CollisionState *collision_state) {
     const int offset = 5;
 
     const int p_width = player->dstrect.w;
@@ -25,7 +25,8 @@ void playerWallCollision(Player *player, Wall *wall,
     }
 
     else if (player->dstrect.y + p_height > wall->dstrect.y + offset &&
-             player->dstrect.y + p_height < wall->dstrect.y + w_height - offset) {
+             player->dstrect.y + p_height <
+                 wall->dstrect.y + w_height - offset) {
         if (player->dstrect.x + p_width > wall->dstrect.x &&
             player->dstrect.x + p_width < wall->dstrect.x + w_width) {
             // left collision
@@ -57,7 +58,7 @@ void playerWallCollision(Player *player, Wall *wall,
             player->dstrect.y + p_height < wall->dstrect.y + w_height) {
             // top collision
             player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
+            collision_state->on_the_floor = true;
         } else if (player->dstrect.y < wall->dstrect.y + w_height &&
                    player->dstrect.y > wall->dstrect.y) {
             // bottom collision
@@ -71,7 +72,7 @@ void playerWallCollision(Player *player, Wall *wall,
             player->dstrect.y + p_height < wall->dstrect.y + w_height) {
             // top collision
             player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
+            collision_state->on_the_floor = true;
         } else if (player->dstrect.y < wall->dstrect.y + w_height &&
                    player->dstrect.y > wall->dstrect.y) {
             // bottom collision
@@ -85,7 +86,7 @@ void playerWallCollision(Player *player, Wall *wall,
             player->dstrect.y + p_height < wall->dstrect.y + w_height) {
             // top collision
             player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
+            collision_state->on_the_floor = true;
         } else if (player->dstrect.y < wall->dstrect.y + w_height &&
                    player->dstrect.y > wall->dstrect.y) {
             // bottom collision
@@ -94,8 +95,8 @@ void playerWallCollision(Player *player, Wall *wall,
     }
 }
 
-void playerPlatformCollision(Player *player, Platform *platform,
-                             CollisionState *collisionState) {
+void PlayerPlatformCollision(Player *player, Platform *platform,
+                             CollisionState *collision_state) {
     const int p_width = player->dstrect.w;
     const int p_height = player->dstrect.h;
 
@@ -105,34 +106,36 @@ void playerPlatformCollision(Player *player, Platform *platform,
     if (player->dstrect.x > platform->dstrect.x &&
         player->dstrect.x < platform->dstrect.x + pl_width) {
         if (player->dstrect.y + p_height > platform->dstrect.y &&
-            player->dstrect.y + p_height < platform->dstrect.y + 2 * player->accel) {
+            player->dstrect.y + p_height <
+                platform->dstrect.y + 2 * player->accel) {
             // top collision
             player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-            collisionState->on_the_platform = true;
+            collision_state->on_the_floor = true;
+            collision_state->on_the_platform = true;
         }
     }
 
     else if (player->dstrect.x + p_width > platform->dstrect.x &&
              player->dstrect.x + p_width < platform->dstrect.x + pl_width) {
         if (player->dstrect.y + p_height > platform->dstrect.y &&
-            player->dstrect.y + p_height < platform->dstrect.y + 2 * player->accel) {
+            player->dstrect.y + p_height <
+                platform->dstrect.y + 2 * player->accel) {
             // top collision
             player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-            collisionState->on_the_platform = true;
+            collision_state->on_the_floor = true;
+            collision_state->on_the_platform = true;
         }
     }
 
     else if (player->dstrect.x + p_width / 2 > platform->dstrect.x &&
              player->dstrect.x + p_width / 2 < platform->dstrect.x + pl_width) {
         if (player->dstrect.y + p_height > platform->dstrect.y &&
-            player->dstrect.y + p_height < platform->dstrect.y + 2 * player->accel) {
+            player->dstrect.y + p_height <
+                platform->dstrect.y + 2 * player->accel) {
             // top collision
             player->dstrect.y -= player->accel;
-            collisionState->on_the_floor = true;
-            collisionState->on_the_platform = true;
+            collision_state->on_the_floor = true;
+            collision_state->on_the_platform = true;
         }
     }
 }
-

@@ -1,40 +1,43 @@
-#include "engine/entities.hpp"
+#include <array>
+#include <iostream>
+
 #include "engine/collision.hpp"
+#include "engine/entities.hpp"
 #include "engine/physics.hpp"
 #include "keybindings/keybindings.hpp"
 
-#include <stdexcept>
+constexpr int LEVEL_WIDTH = 744;   // 750
+constexpr int LEVEL_HEIGHT = 504;  // 500
 
-#define LEVEL_WIDTH 744  // 750
-#define LEVEL_HEIGHT 504 // 500
+struct Coord2D {
+    int x;
+    int y;
+};
 
-/* Frames per second */
-const int miliseconds = 1000;   // 1000 ms equals 1s
-const int gameplay_frames = 60; // amount of frames per second
+void PlayerBoundary(Player *player);
 
-void playerBoundary(Player *player);
+void RenderSprites(SDL_Renderer *rend, Player player,
+                   std::array<Wall, 45> walls,
+                   std::array<Platform, 14> platforms);
 
-void renderSprites(SDL_Renderer *rend, Player player, Wall walls[45],
-                   Platform platforms[14]);
+void SetPosition(SDL_Rect *dstrect, Coord2D pos);
 
-void setPosition(SDL_Rect *dstrect, int x, int y);
-
-void freeAndCloseResources(SDL_Surface *PlayerSurf, SDL_Texture *PlayerTex,
-                           SDL_Surface *WallSurf, SDL_Texture *WallTex,
+void FreeAndCloseResources(SDL_Surface *player_surf, SDL_Texture *player_tex,
+                           SDL_Surface *wall_surf, SDL_Texture *wall_tex,
                            Mix_Music *music, SDL_Renderer *rend,
                            SDL_Window *win, SDL_GameController *gamecontroller);
 
-void playerObjectCollisions(Player *player, Wall walls[45],
-                            Platform platforms[14],
-                            CollisionState *collisionState);
+void PlayerObjectCollisions(Player *player, std::array<Wall, 45> walls,
+                            std::array<Platform, 14> platforms,
+                            CollisionState *collision_state);
 
 int main() {
     /* Player Attributes */
     const int player_width = 24;
     const int player_height = 24;
 
-    const int player_speed = 2;   // speed of player
-    const int player_offset = 24; // gap between left corner of the window
+    const int player_speed = 2;    // speed of player
+    const int player_offset = 24;  // gap between left corner of the window
     const int player_accel = 4;
 
     const int wall_width = 24;
@@ -55,16 +58,17 @@ int main() {
 
     /* Initialize SDL, window, audio, and renderer */
     int sdl_status = SDL_Init(
-        SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER); // Initialize SDL library
+        SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);  // Initialize SDL library
 
     if (sdl_status == -1) {
         std::string debug_msg =
             "SDL_Init: " + static_cast<std::string>(SDL_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
     SDL_GameController *gamecontroller =
-        SDL_GameControllerOpen(0); // Open Game Controller
+        SDL_GameControllerOpen(0);  // Open Game Controller
 
     // Create window
     SDL_Window *win =
@@ -73,12 +77,13 @@ int main() {
 
     int open_audio_status =
         Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2,
-                      chunksize); // Initialize SDL mixer
+                      chunksize);  // Initialize SDL mixer
 
     if (open_audio_status == -1) {
         std::string debug_msg =
             "Mix_OpenAudio: " + static_cast<std::string>(Mix_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
     // Creates a renderer to render the images
@@ -89,28 +94,31 @@ int main() {
 
     /* Loads images, music, and soundeffects */
     // Creates the asset that loads the image into main memory
-    SDL_Surface *PlayerSurf = IMG_Load(player_path);
+    SDL_Surface *player_surf = IMG_Load(player_path);
 
-    if (PlayerSurf == NULL) {
+    if (player_surf == NULL) {
         std::string debug_msg =
             "IMG_Load: " + static_cast<std::string>(IMG_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
-    SDL_Surface *WallSurf = IMG_Load(wall_path);
+    SDL_Surface *wall_surf = IMG_Load(wall_path);
 
-    if (WallSurf == NULL) {
+    if (wall_surf == NULL) {
         std::string debug_msg =
             "IMG_Load: " + static_cast<std::string>(IMG_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
-    SDL_Surface *PlatformSurf = IMG_Load(platform_path);
+    SDL_Surface *platform_surf = IMG_Load(platform_path);
 
-    if (PlatformSurf == NULL) {
+    if (platform_surf == NULL) {
         std::string debug_msg =
             "IMG_Load: " + static_cast<std::string>(IMG_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
     Mix_Music *music = Mix_LoadMUS(music_path);
@@ -118,41 +126,43 @@ int main() {
     if (music == NULL) {
         std::string debug_msg =
             "Mix_LoadMUS: " + static_cast<std::string>(Mix_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
     // Loads images to our graphics hardware memory
     // Player
-    SDL_Texture *PlayerTex = SDL_CreateTextureFromSurface(rend, PlayerSurf);
+    SDL_Texture *player_tex = SDL_CreateTextureFromSurface(rend, player_surf);
     SDL_Rect p_dstrect = {0 + player_offset,
                           LEVEL_HEIGHT - player_height - player_offset,
                           player_width, player_height};
     SDL_Rect p_srcrect = {0, 0, player_width, player_height};
 
-    MotionState motionState;
-    motionState.jump = false;
-    motionState.jump_frames = 0;
+    MotionState motion_state;
+    motion_state.jump = false;
+    motion_state.jump_frames = 0;
 
-    CollisionState collisionState;
-    collisionState.on_the_floor = false;
-    collisionState.on_the_platform = false;
+    CollisionState collision_state;
+    collision_state.on_the_floor = false;
+    collision_state.on_the_platform = false;
 
     Player player;
     player.dstrect = p_dstrect;
     player.srcrect = p_srcrect;
     player.speed = player_speed;
-    player.PlayerTex = PlayerTex;
+    player.texture = player_tex;
     player.accel = player_accel;
-    player.motionState = motionState;
-    player.collisionState = collisionState;
+    player.motion_state = motion_state;
+    player.collision_state = collision_state;
 
     // Wall
-    SDL_Texture *WallTex = SDL_CreateTextureFromSurface(rend, WallSurf);
+    SDL_Texture *wall_tex = SDL_CreateTextureFromSurface(rend, wall_surf);
 
-    if (WallTex == NULL) {
+    if (wall_tex == NULL) {
         std::string debug_msg = "SDL_CreateTextureFromSurface: " +
                                 static_cast<std::string>(SDL_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
     SDL_Rect w_dstrect = {LEVEL_WIDTH - 200, LEVEL_HEIGHT - 200, wall_width,
@@ -162,15 +172,17 @@ int main() {
     Wall wall;
     wall.dstrect = w_dstrect;
     wall.srcrect = w_srcrect;
-    wall.WallTex = WallTex;
+    wall.texture = wall_tex;
 
     // Platform
-    SDL_Texture *PlatformTex = SDL_CreateTextureFromSurface(rend, PlatformSurf);
+    SDL_Texture *platform_tex =
+        SDL_CreateTextureFromSurface(rend, platform_surf);
 
-    if (PlatformTex == NULL) {
+    if (platform_tex == NULL) {
         std::string debug_msg = "SDL_CreateTextureFromSurface: " +
                                 static_cast<std::string>(SDL_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
     SDL_Rect pl_dstrect = {LEVEL_WIDTH - 200, LEVEL_HEIGHT - 200,
@@ -180,141 +192,202 @@ int main() {
     Platform platform;
     platform.dstrect = pl_dstrect;
     platform.srcrect = pl_srcrect;
-    platform.PlatformTex = PlatformTex;
+    platform.texture = platform_tex;
 
     // Walls
-    Wall walls[45] = {wall, wall, wall, wall, wall, wall, wall, wall, wall,
-                      wall, wall, wall, wall, wall, wall, wall, wall, wall,
-                      wall, wall, wall, wall, wall, wall, wall, wall, wall,
-                      wall, wall, wall, wall, wall, wall, wall, wall, wall,
-                      wall, wall, wall, wall, wall, wall, wall, wall, wall};
+    std::array<Wall, 45> walls = {
+        wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall,
+        wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall,
+        wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall,
+        wall, wall, wall, wall, wall, wall, wall, wall, wall};
 
     // Platforms
-    Platform platforms[14] = {
+    std::array<Platform, 14> platforms = {
         platform, platform, platform, platform, platform, platform, platform,
         platform, platform, platform, platform, platform, platform, platform,
     };
 
     /* Map layout */
     // Set positions of the wall
-    setPosition(&walls[0].dstrect, LEVEL_WIDTH - 24, LEVEL_HEIGHT - 24);
-    setPosition(&walls[1].dstrect, LEVEL_WIDTH - 48, LEVEL_HEIGHT - 24);
-    setPosition(&walls[2].dstrect, LEVEL_WIDTH - 72, LEVEL_HEIGHT - 24);
-    setPosition(&walls[3].dstrect, LEVEL_WIDTH - 96, LEVEL_HEIGHT - 24);
-    setPosition(&walls[4].dstrect, LEVEL_WIDTH - 120, LEVEL_HEIGHT - 24);
-    setPosition(&walls[5].dstrect, LEVEL_WIDTH - 144, LEVEL_HEIGHT - 24);
-    setPosition(&walls[6].dstrect, LEVEL_WIDTH - 168, LEVEL_HEIGHT - 24);
-    setPosition(&walls[7].dstrect, LEVEL_WIDTH - 192, LEVEL_HEIGHT - 24);
-    setPosition(&walls[8].dstrect, LEVEL_WIDTH - 216, LEVEL_HEIGHT - 24);
-    setPosition(&walls[9].dstrect, LEVEL_WIDTH - 240, LEVEL_HEIGHT - 24);
+    SetPosition(&walls[0].dstrect,
+                Coord2D{LEVEL_WIDTH - 24, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[1].dstrect,
+                Coord2D{LEVEL_WIDTH - 48, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[2].dstrect,
+                Coord2D{LEVEL_WIDTH - 72, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[3].dstrect,
+                Coord2D{LEVEL_WIDTH - 96, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[4].dstrect,
+                Coord2D{LEVEL_WIDTH - 120, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[5].dstrect,
+                Coord2D{LEVEL_WIDTH - 144, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[6].dstrect,
+                Coord2D{LEVEL_WIDTH - 168, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[7].dstrect,
+                Coord2D{LEVEL_WIDTH - 192, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[8].dstrect,
+                Coord2D{LEVEL_WIDTH - 216, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[9].dstrect,
+                Coord2D{LEVEL_WIDTH - 240, LEVEL_HEIGHT - 24});
 
-    setPosition(&walls[10].dstrect, LEVEL_WIDTH - 264, LEVEL_HEIGHT - 24);
-    setPosition(&walls[11].dstrect, LEVEL_WIDTH - 288, LEVEL_HEIGHT - 24);
-    setPosition(&walls[12].dstrect, LEVEL_WIDTH - 312, LEVEL_HEIGHT - 24);
-    setPosition(&walls[13].dstrect, LEVEL_WIDTH - 336, LEVEL_HEIGHT - 24);
-    setPosition(&walls[14].dstrect, LEVEL_WIDTH - 360, LEVEL_HEIGHT - 24);
-    setPosition(&walls[15].dstrect, LEVEL_WIDTH - 384, LEVEL_HEIGHT - 24);
-    setPosition(&walls[16].dstrect, LEVEL_WIDTH - 408, LEVEL_HEIGHT - 24);
-    setPosition(&walls[17].dstrect, LEVEL_WIDTH - 432, LEVEL_HEIGHT - 24);
-    setPosition(&walls[18].dstrect, LEVEL_WIDTH - 456, LEVEL_HEIGHT - 24);
-    setPosition(&walls[19].dstrect, LEVEL_WIDTH - 480, LEVEL_HEIGHT - 24);
+    SetPosition(&walls[10].dstrect,
+                Coord2D{LEVEL_WIDTH - 264, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[11].dstrect,
+                Coord2D{LEVEL_WIDTH - 288, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[12].dstrect,
+                Coord2D{LEVEL_WIDTH - 312, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[13].dstrect,
+                Coord2D{LEVEL_WIDTH - 336, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[14].dstrect,
+                Coord2D{LEVEL_WIDTH - 360, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[15].dstrect,
+                Coord2D{LEVEL_WIDTH - 384, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[16].dstrect,
+                Coord2D{LEVEL_WIDTH - 408, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[17].dstrect,
+                Coord2D{LEVEL_WIDTH - 432, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[18].dstrect,
+                Coord2D{LEVEL_WIDTH - 456, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[19].dstrect,
+                Coord2D{LEVEL_WIDTH - 480, LEVEL_HEIGHT - 24});
 
-    setPosition(&walls[20].dstrect, LEVEL_WIDTH - 504, LEVEL_HEIGHT - 24);
-    setPosition(&walls[21].dstrect, LEVEL_WIDTH - 528, LEVEL_HEIGHT - 24);
-    setPosition(&walls[22].dstrect, LEVEL_WIDTH - 552, LEVEL_HEIGHT - 24);
-    setPosition(&walls[23].dstrect, LEVEL_WIDTH - 576, LEVEL_HEIGHT - 24);
-    setPosition(&walls[24].dstrect, LEVEL_WIDTH - 600, LEVEL_HEIGHT - 24);
-    setPosition(&walls[25].dstrect, LEVEL_WIDTH - 624, LEVEL_HEIGHT - 24);
-    setPosition(&walls[26].dstrect, LEVEL_WIDTH - 648, LEVEL_HEIGHT - 24);
-    setPosition(&walls[27].dstrect, LEVEL_WIDTH - 672, LEVEL_HEIGHT - 24);
-    setPosition(&walls[28].dstrect, LEVEL_WIDTH - 696, LEVEL_HEIGHT - 24);
-    setPosition(&walls[29].dstrect, LEVEL_WIDTH - 720, LEVEL_HEIGHT - 24);
+    SetPosition(&walls[20].dstrect,
+                Coord2D{LEVEL_WIDTH - 504, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[21].dstrect,
+                Coord2D{LEVEL_WIDTH - 528, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[22].dstrect,
+                Coord2D{LEVEL_WIDTH - 552, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[23].dstrect,
+                Coord2D{LEVEL_WIDTH - 576, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[24].dstrect,
+                Coord2D{LEVEL_WIDTH - 600, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[25].dstrect,
+                Coord2D{LEVEL_WIDTH - 624, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[26].dstrect,
+                Coord2D{LEVEL_WIDTH - 648, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[27].dstrect,
+                Coord2D{LEVEL_WIDTH - 672, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[28].dstrect,
+                Coord2D{LEVEL_WIDTH - 696, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[29].dstrect,
+                Coord2D{LEVEL_WIDTH - 720, LEVEL_HEIGHT - 24});
 
-    setPosition(&walls[30].dstrect, LEVEL_WIDTH - 744, LEVEL_HEIGHT - 24);
-    setPosition(&walls[31].dstrect, LEVEL_WIDTH - 216, LEVEL_HEIGHT - 72);
-    setPosition(&walls[32].dstrect, LEVEL_WIDTH - 240, LEVEL_HEIGHT - 72);
-    setPosition(&walls[33].dstrect, LEVEL_WIDTH - 264, LEVEL_HEIGHT - 72);
-    setPosition(&walls[34].dstrect, LEVEL_WIDTH - 288, LEVEL_HEIGHT - 72);
-    setPosition(&walls[35].dstrect, LEVEL_WIDTH - 312, LEVEL_HEIGHT - 72);
-    setPosition(&walls[36].dstrect, LEVEL_WIDTH - 336, LEVEL_HEIGHT - 72);
-    setPosition(&walls[37].dstrect, LEVEL_WIDTH - 360, LEVEL_HEIGHT - 72);
-    setPosition(&walls[38].dstrect, LEVEL_WIDTH - 384, LEVEL_HEIGHT - 72);
-    setPosition(&walls[39].dstrect, LEVEL_WIDTH - 408, LEVEL_HEIGHT - 72);
+    SetPosition(&walls[30].dstrect,
+                Coord2D{LEVEL_WIDTH - 744, LEVEL_HEIGHT - 24});
+    SetPosition(&walls[31].dstrect,
+                Coord2D{LEVEL_WIDTH - 216, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[32].dstrect,
+                Coord2D{LEVEL_WIDTH - 240, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[33].dstrect,
+                Coord2D{LEVEL_WIDTH - 264, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[34].dstrect,
+                Coord2D{LEVEL_WIDTH - 288, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[35].dstrect,
+                Coord2D{LEVEL_WIDTH - 312, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[36].dstrect,
+                Coord2D{LEVEL_WIDTH - 336, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[37].dstrect,
+                Coord2D{LEVEL_WIDTH - 360, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[38].dstrect,
+                Coord2D{LEVEL_WIDTH - 384, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[39].dstrect,
+                Coord2D{LEVEL_WIDTH - 408, LEVEL_HEIGHT - 72});
 
-    setPosition(&walls[40].dstrect, LEVEL_WIDTH - 432, LEVEL_HEIGHT - 72);
-    setPosition(&walls[41].dstrect, LEVEL_WIDTH - 456, LEVEL_HEIGHT - 72);
-    setPosition(&walls[42].dstrect, LEVEL_WIDTH - 480, LEVEL_HEIGHT - 72);
-    setPosition(&walls[43].dstrect, LEVEL_WIDTH - 504, LEVEL_HEIGHT - 72);
-    setPosition(&walls[44].dstrect, LEVEL_WIDTH - 528, LEVEL_HEIGHT - 72);
+    SetPosition(&walls[40].dstrect,
+                Coord2D{LEVEL_WIDTH - 432, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[41].dstrect,
+                Coord2D{LEVEL_WIDTH - 456, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[42].dstrect,
+                Coord2D{LEVEL_WIDTH - 480, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[43].dstrect,
+                Coord2D{LEVEL_WIDTH - 504, LEVEL_HEIGHT - 72});
+    SetPosition(&walls[44].dstrect,
+                Coord2D{LEVEL_WIDTH - 528, LEVEL_HEIGHT - 72});
 
     // Set the positions of the platforms
-    setPosition(&platforms[0].dstrect, LEVEL_WIDTH - 216, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[1].dstrect, LEVEL_WIDTH - 240, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[2].dstrect, LEVEL_WIDTH - 264, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[3].dstrect, LEVEL_WIDTH - 288, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[4].dstrect, LEVEL_WIDTH - 312, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[5].dstrect, LEVEL_WIDTH - 336, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[6].dstrect, LEVEL_WIDTH - 360, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[7].dstrect, LEVEL_WIDTH - 384, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[8].dstrect, LEVEL_WIDTH - 408, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[9].dstrect, LEVEL_WIDTH - 432, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[10].dstrect, LEVEL_WIDTH - 456, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[11].dstrect, LEVEL_WIDTH - 480, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[12].dstrect, LEVEL_WIDTH - 504, LEVEL_HEIGHT - 120);
-    setPosition(&platforms[13].dstrect, LEVEL_WIDTH - 528, LEVEL_HEIGHT - 120);
+    SetPosition(&platforms[0].dstrect,
+                Coord2D{LEVEL_WIDTH - 216, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[1].dstrect,
+                Coord2D{LEVEL_WIDTH - 240, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[2].dstrect,
+                Coord2D{LEVEL_WIDTH - 264, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[3].dstrect,
+                Coord2D{LEVEL_WIDTH - 288, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[4].dstrect,
+                Coord2D{LEVEL_WIDTH - 312, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[5].dstrect,
+                Coord2D{LEVEL_WIDTH - 336, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[6].dstrect,
+                Coord2D{LEVEL_WIDTH - 360, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[7].dstrect,
+                Coord2D{LEVEL_WIDTH - 384, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[8].dstrect,
+                Coord2D{LEVEL_WIDTH - 408, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[9].dstrect,
+                Coord2D{LEVEL_WIDTH - 432, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[10].dstrect,
+                Coord2D{LEVEL_WIDTH - 456, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[11].dstrect,
+                Coord2D{LEVEL_WIDTH - 480, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[12].dstrect,
+                Coord2D{LEVEL_WIDTH - 504, LEVEL_HEIGHT - 120});
+    SetPosition(&platforms[13].dstrect,
+                Coord2D{LEVEL_WIDTH - 528, LEVEL_HEIGHT - 120});
 
-    Mix_VolumeMusic(music_volume); // Adjust music volume
+    Mix_VolumeMusic(music_volume);  // Adjust music volume
 
     int player_music_status =
-        Mix_PlayMusic(music, -1); // Start background music (-1 means infinity)
+        Mix_PlayMusic(music, -1);  // Start background music (-1 means infinity)
 
     if (player_music_status == -1) {
         std::string debug_msg =
             "Mix_PlayMusic: " + static_cast<std::string>(Mix_GetError());
-        std::runtime_error(debug_msg.c_str());
+        std::cerr << debug_msg << std::endl;
+        return -1;
     }
 
     /* Gameplay Loop */
-    bool quit = false; // gameplay loop switch
+    bool quit = false;  // gameplay loop switch
 
-    while (!quit) { // gameplay loop
+    while (!quit) {  // gameplay loop
         /* Click Key Bindings */
-        SDL_Event event; // Event handling
+        SDL_Event event;  // Event handling
 
-        while (SDL_PollEvent(&event) == 1) { // Events management
+        while (SDL_PollEvent(&event) == 1) {  // Events management
             // Click Keybindings
-            quit = clickKeybindings(event, &player.motionState,
-                                    &player.collisionState, &player.dstrect, player.accel);
+            quit = ClickKeybindings(event, &player.motion_state,
+                                    &player.collision_state, &player.dstrect,
+                                    player.accel);
         }
 
         /* Hold Keybindings */
-        holdKeybindings(&player, gamecontroller);
+        HoldKeybindings(&player, gamecontroller);
 
         /* Player boundaries */
-        playerBoundary(&player);
+        PlayerBoundary(&player);
 
         /* Render sprites */
-        renderSprites(rend, player, walls, platforms);
+        RenderSprites(rend, player, walls, platforms);
 
         /* Gravity */
-        gravity(&player);
+        Gravity(&player);
 
         /* Jump physics */
-        jumpPhysics(&player, &player.motionState);
+        JumpPhysics(&player, &player.motion_state);
 
         /* Player wall collisons */
-        playerObjectCollisions(&player, walls, platforms,
-                               &player.collisionState);
+        PlayerObjectCollisions(&player, walls, platforms,
+                               &player.collision_state);
     }
 
     /* Free resources and close SDL and SDL mixer */
-    freeAndCloseResources(PlayerSurf, PlayerTex, WallSurf, WallTex, music, rend,
-                          win, gamecontroller);
+    FreeAndCloseResources(player_surf, player_tex, wall_surf, wall_tex, music,
+                          rend, win, gamecontroller);
 
     return 0;
 }
 
-void playerBoundary(Player *player) {
+void PlayerBoundary(Player *player) {
     /* Player boundaries */
     // left boundary
     if (player->dstrect.x < 0) {
@@ -334,239 +407,242 @@ void playerBoundary(Player *player) {
     }
 }
 
-void renderSprites(SDL_Renderer *rend, Player player, Wall walls[45],
-                   Platform platforms[14]) {
+void RenderSprites(SDL_Renderer *rend, Player player,
+                   std::array<Wall, 45> walls,
+                   std::array<Platform, 14> platforms) {
+    /* Frames per second */
+    const int miliseconds = 1000;    // 1000 ms equals 1s
+    const int gameplay_frames = 60;  // amount of frames per second
+
     /* Render sprites */
     SDL_RenderClear(rend);
 
     // Render Walls
-    SDL_RenderCopy(rend, walls[0].WallTex, &walls[0].srcrect,
+    SDL_RenderCopy(rend, walls[0].texture, &walls[0].srcrect,
                    &walls[0].dstrect);
-    SDL_RenderCopy(rend, walls[1].WallTex, &walls[1].srcrect,
+    SDL_RenderCopy(rend, walls[1].texture, &walls[1].srcrect,
                    &walls[1].dstrect);
-    SDL_RenderCopy(rend, walls[2].WallTex, &walls[2].srcrect,
+    SDL_RenderCopy(rend, walls[2].texture, &walls[2].srcrect,
                    &walls[2].dstrect);
-    SDL_RenderCopy(rend, walls[3].WallTex, &walls[3].srcrect,
+    SDL_RenderCopy(rend, walls[3].texture, &walls[3].srcrect,
                    &walls[3].dstrect);
-    SDL_RenderCopy(rend, walls[4].WallTex, &walls[4].srcrect,
+    SDL_RenderCopy(rend, walls[4].texture, &walls[4].srcrect,
                    &walls[4].dstrect);
-    SDL_RenderCopy(rend, walls[5].WallTex, &walls[5].srcrect,
+    SDL_RenderCopy(rend, walls[5].texture, &walls[5].srcrect,
                    &walls[5].dstrect);
-    SDL_RenderCopy(rend, walls[6].WallTex, &walls[6].srcrect,
+    SDL_RenderCopy(rend, walls[6].texture, &walls[6].srcrect,
                    &walls[6].dstrect);
-    SDL_RenderCopy(rend, walls[7].WallTex, &walls[7].srcrect,
+    SDL_RenderCopy(rend, walls[7].texture, &walls[7].srcrect,
                    &walls[7].dstrect);
-    SDL_RenderCopy(rend, walls[8].WallTex, &walls[8].srcrect,
+    SDL_RenderCopy(rend, walls[8].texture, &walls[8].srcrect,
                    &walls[8].dstrect);
-    SDL_RenderCopy(rend, walls[9].WallTex, &walls[9].srcrect,
+    SDL_RenderCopy(rend, walls[9].texture, &walls[9].srcrect,
                    &walls[9].dstrect);
 
-    SDL_RenderCopy(rend, walls[10].WallTex, &walls[10].srcrect,
+    SDL_RenderCopy(rend, walls[10].texture, &walls[10].srcrect,
                    &walls[10].dstrect);
-    SDL_RenderCopy(rend, walls[11].WallTex, &walls[11].srcrect,
+    SDL_RenderCopy(rend, walls[11].texture, &walls[11].srcrect,
                    &walls[11].dstrect);
-    SDL_RenderCopy(rend, walls[12].WallTex, &walls[12].srcrect,
+    SDL_RenderCopy(rend, walls[12].texture, &walls[12].srcrect,
                    &walls[12].dstrect);
-    SDL_RenderCopy(rend, walls[13].WallTex, &walls[13].srcrect,
+    SDL_RenderCopy(rend, walls[13].texture, &walls[13].srcrect,
                    &walls[13].dstrect);
-    SDL_RenderCopy(rend, walls[14].WallTex, &walls[14].srcrect,
+    SDL_RenderCopy(rend, walls[14].texture, &walls[14].srcrect,
                    &walls[14].dstrect);
-    SDL_RenderCopy(rend, walls[15].WallTex, &walls[15].srcrect,
+    SDL_RenderCopy(rend, walls[15].texture, &walls[15].srcrect,
                    &walls[15].dstrect);
-    SDL_RenderCopy(rend, walls[16].WallTex, &walls[16].srcrect,
+    SDL_RenderCopy(rend, walls[16].texture, &walls[16].srcrect,
                    &walls[16].dstrect);
-    SDL_RenderCopy(rend, walls[17].WallTex, &walls[17].srcrect,
+    SDL_RenderCopy(rend, walls[17].texture, &walls[17].srcrect,
                    &walls[17].dstrect);
-    SDL_RenderCopy(rend, walls[18].WallTex, &walls[18].srcrect,
+    SDL_RenderCopy(rend, walls[18].texture, &walls[18].srcrect,
                    &walls[18].dstrect);
-    SDL_RenderCopy(rend, walls[19].WallTex, &walls[19].srcrect,
+    SDL_RenderCopy(rend, walls[19].texture, &walls[19].srcrect,
                    &walls[19].dstrect);
 
-    SDL_RenderCopy(rend, walls[20].WallTex, &walls[20].srcrect,
+    SDL_RenderCopy(rend, walls[20].texture, &walls[20].srcrect,
                    &walls[20].dstrect);
-    SDL_RenderCopy(rend, walls[21].WallTex, &walls[21].srcrect,
+    SDL_RenderCopy(rend, walls[21].texture, &walls[21].srcrect,
                    &walls[21].dstrect);
-    SDL_RenderCopy(rend, walls[22].WallTex, &walls[22].srcrect,
+    SDL_RenderCopy(rend, walls[22].texture, &walls[22].srcrect,
                    &walls[22].dstrect);
-    SDL_RenderCopy(rend, walls[23].WallTex, &walls[23].srcrect,
+    SDL_RenderCopy(rend, walls[23].texture, &walls[23].srcrect,
                    &walls[23].dstrect);
-    SDL_RenderCopy(rend, walls[24].WallTex, &walls[24].srcrect,
+    SDL_RenderCopy(rend, walls[24].texture, &walls[24].srcrect,
                    &walls[24].dstrect);
-    SDL_RenderCopy(rend, walls[25].WallTex, &walls[25].srcrect,
+    SDL_RenderCopy(rend, walls[25].texture, &walls[25].srcrect,
                    &walls[25].dstrect);
-    SDL_RenderCopy(rend, walls[26].WallTex, &walls[26].srcrect,
+    SDL_RenderCopy(rend, walls[26].texture, &walls[26].srcrect,
                    &walls[26].dstrect);
-    SDL_RenderCopy(rend, walls[27].WallTex, &walls[27].srcrect,
+    SDL_RenderCopy(rend, walls[27].texture, &walls[27].srcrect,
                    &walls[27].dstrect);
-    SDL_RenderCopy(rend, walls[28].WallTex, &walls[28].srcrect,
+    SDL_RenderCopy(rend, walls[28].texture, &walls[28].srcrect,
                    &walls[28].dstrect);
-    SDL_RenderCopy(rend, walls[29].WallTex, &walls[29].srcrect,
+    SDL_RenderCopy(rend, walls[29].texture, &walls[29].srcrect,
                    &walls[29].dstrect);
 
-    SDL_RenderCopy(rend, walls[30].WallTex, &walls[30].srcrect,
+    SDL_RenderCopy(rend, walls[30].texture, &walls[30].srcrect,
                    &walls[30].dstrect);
-    SDL_RenderCopy(rend, walls[31].WallTex, &walls[31].srcrect,
+    SDL_RenderCopy(rend, walls[31].texture, &walls[31].srcrect,
                    &walls[31].dstrect);
-    SDL_RenderCopy(rend, walls[32].WallTex, &walls[32].srcrect,
+    SDL_RenderCopy(rend, walls[32].texture, &walls[32].srcrect,
                    &walls[32].dstrect);
-    SDL_RenderCopy(rend, walls[33].WallTex, &walls[33].srcrect,
+    SDL_RenderCopy(rend, walls[33].texture, &walls[33].srcrect,
                    &walls[33].dstrect);
-    SDL_RenderCopy(rend, walls[34].WallTex, &walls[34].srcrect,
+    SDL_RenderCopy(rend, walls[34].texture, &walls[34].srcrect,
                    &walls[34].dstrect);
-    SDL_RenderCopy(rend, walls[35].WallTex, &walls[35].srcrect,
+    SDL_RenderCopy(rend, walls[35].texture, &walls[35].srcrect,
                    &walls[35].dstrect);
-    SDL_RenderCopy(rend, walls[36].WallTex, &walls[36].srcrect,
+    SDL_RenderCopy(rend, walls[36].texture, &walls[36].srcrect,
                    &walls[36].dstrect);
-    SDL_RenderCopy(rend, walls[37].WallTex, &walls[37].srcrect,
+    SDL_RenderCopy(rend, walls[37].texture, &walls[37].srcrect,
                    &walls[37].dstrect);
-    SDL_RenderCopy(rend, walls[38].WallTex, &walls[38].srcrect,
+    SDL_RenderCopy(rend, walls[38].texture, &walls[38].srcrect,
                    &walls[38].dstrect);
-    SDL_RenderCopy(rend, walls[39].WallTex, &walls[39].srcrect,
+    SDL_RenderCopy(rend, walls[39].texture, &walls[39].srcrect,
                    &walls[39].dstrect);
-    SDL_RenderCopy(rend, walls[40].WallTex, &walls[40].srcrect,
+    SDL_RenderCopy(rend, walls[40].texture, &walls[40].srcrect,
                    &walls[40].dstrect);
-    SDL_RenderCopy(rend, walls[41].WallTex, &walls[41].srcrect,
+    SDL_RenderCopy(rend, walls[41].texture, &walls[41].srcrect,
                    &walls[41].dstrect);
-    SDL_RenderCopy(rend, walls[42].WallTex, &walls[42].srcrect,
+    SDL_RenderCopy(rend, walls[42].texture, &walls[42].srcrect,
                    &walls[42].dstrect);
-    SDL_RenderCopy(rend, walls[43].WallTex, &walls[43].srcrect,
+    SDL_RenderCopy(rend, walls[43].texture, &walls[43].srcrect,
                    &walls[43].dstrect);
-    SDL_RenderCopy(rend, walls[44].WallTex, &walls[44].srcrect,
+    SDL_RenderCopy(rend, walls[44].texture, &walls[44].srcrect,
                    &walls[44].dstrect);
 
     // Render platforms
-    SDL_RenderCopy(rend, platforms[0].PlatformTex, &platforms[0].srcrect,
+    SDL_RenderCopy(rend, platforms[0].texture, &platforms[0].srcrect,
                    &platforms[0].dstrect);
-    SDL_RenderCopy(rend, platforms[1].PlatformTex, &platforms[1].srcrect,
+    SDL_RenderCopy(rend, platforms[1].texture, &platforms[1].srcrect,
                    &platforms[1].dstrect);
-    SDL_RenderCopy(rend, platforms[2].PlatformTex, &platforms[2].srcrect,
+    SDL_RenderCopy(rend, platforms[2].texture, &platforms[2].srcrect,
                    &platforms[2].dstrect);
-    SDL_RenderCopy(rend, platforms[3].PlatformTex, &platforms[3].srcrect,
+    SDL_RenderCopy(rend, platforms[3].texture, &platforms[3].srcrect,
                    &platforms[3].dstrect);
-    SDL_RenderCopy(rend, platforms[4].PlatformTex, &platforms[4].srcrect,
+    SDL_RenderCopy(rend, platforms[4].texture, &platforms[4].srcrect,
                    &platforms[4].dstrect);
-    SDL_RenderCopy(rend, platforms[5].PlatformTex, &platforms[5].srcrect,
+    SDL_RenderCopy(rend, platforms[5].texture, &platforms[5].srcrect,
                    &platforms[5].dstrect);
-    SDL_RenderCopy(rend, platforms[6].PlatformTex, &platforms[6].srcrect,
+    SDL_RenderCopy(rend, platforms[6].texture, &platforms[6].srcrect,
                    &platforms[6].dstrect);
-    SDL_RenderCopy(rend, platforms[7].PlatformTex, &platforms[7].srcrect,
+    SDL_RenderCopy(rend, platforms[7].texture, &platforms[7].srcrect,
                    &platforms[7].dstrect);
-    SDL_RenderCopy(rend, platforms[8].PlatformTex, &platforms[8].srcrect,
+    SDL_RenderCopy(rend, platforms[8].texture, &platforms[8].srcrect,
                    &platforms[8].dstrect);
-    SDL_RenderCopy(rend, platforms[9].PlatformTex, &platforms[9].srcrect,
+    SDL_RenderCopy(rend, platforms[9].texture, &platforms[9].srcrect,
                    &platforms[9].dstrect);
-    SDL_RenderCopy(rend, platforms[10].PlatformTex, &platforms[10].srcrect,
+    SDL_RenderCopy(rend, platforms[10].texture, &platforms[10].srcrect,
                    &platforms[10].dstrect);
-    SDL_RenderCopy(rend, platforms[11].PlatformTex, &platforms[11].srcrect,
+    SDL_RenderCopy(rend, platforms[11].texture, &platforms[11].srcrect,
                    &platforms[11].dstrect);
-    SDL_RenderCopy(rend, platforms[12].PlatformTex, &platforms[12].srcrect,
+    SDL_RenderCopy(rend, platforms[12].texture, &platforms[12].srcrect,
                    &platforms[12].dstrect);
-    SDL_RenderCopy(rend, platforms[13].PlatformTex, &platforms[13].srcrect,
+    SDL_RenderCopy(rend, platforms[13].texture, &platforms[13].srcrect,
                    &platforms[13].dstrect);
-    SDL_RenderCopy(rend, platforms[14].PlatformTex, &platforms[14].srcrect,
-                   &platforms[14].dstrect);
 
-    SDL_RenderCopy(rend, player.PlayerTex, &player.srcrect, &player.dstrect);
-    SDL_RenderPresent(rend); // Triggers double buffers for multiple rendering
-    SDL_Delay(miliseconds / gameplay_frames); // Calculates to 60 fps
+    SDL_RenderCopy(rend, player.texture, &player.srcrect, &player.dstrect);
+    SDL_RenderPresent(rend);  // Triggers double buffers for multiple rendering
+    SDL_Delay(miliseconds / gameplay_frames);  // Calculates to 60 fps
 }
 
-void setPosition(SDL_Rect *dstrect, int x, int y) {
-    dstrect->x = x;
-    dstrect->y = y;
+void SetPosition(SDL_Rect *dstrect, Coord2D pos) {
+    dstrect->x = pos.x;
+    dstrect->y = pos.y;
 }
 
-void playerObjectCollisions(Player *player, Wall walls[45],
-                            Platform platforms[14],
-                            CollisionState *collisionState) {
+void PlayerObjectCollisions(Player *player, std::array<Wall, 45> walls,
+                            std::array<Platform, 14> platforms,
+                            CollisionState *collision_state) {
     /* Player wall collisons */
-    playerWallCollision(player, &walls[0], collisionState);
-    playerWallCollision(player, &walls[1], collisionState);
-    playerWallCollision(player, &walls[2], collisionState);
-    playerWallCollision(player, &walls[3], collisionState);
-    playerWallCollision(player, &walls[4], collisionState);
-    playerWallCollision(player, &walls[5], collisionState);
-    playerWallCollision(player, &walls[6], collisionState);
-    playerWallCollision(player, &walls[7], collisionState);
-    playerWallCollision(player, &walls[8], collisionState);
-    playerWallCollision(player, &walls[9], collisionState);
+    PlayerWallCollision(player, &walls[0], collision_state);
+    PlayerWallCollision(player, &walls[1], collision_state);
+    PlayerWallCollision(player, &walls[2], collision_state);
+    PlayerWallCollision(player, &walls[3], collision_state);
+    PlayerWallCollision(player, &walls[4], collision_state);
+    PlayerWallCollision(player, &walls[5], collision_state);
+    PlayerWallCollision(player, &walls[6], collision_state);
+    PlayerWallCollision(player, &walls[7], collision_state);
+    PlayerWallCollision(player, &walls[8], collision_state);
+    PlayerWallCollision(player, &walls[9], collision_state);
 
-    playerWallCollision(player, &walls[10], collisionState);
-    playerWallCollision(player, &walls[11], collisionState);
-    playerWallCollision(player, &walls[12], collisionState);
-    playerWallCollision(player, &walls[13], collisionState);
-    playerWallCollision(player, &walls[14], collisionState);
-    playerWallCollision(player, &walls[15], collisionState);
-    playerWallCollision(player, &walls[16], collisionState);
-    playerWallCollision(player, &walls[17], collisionState);
-    playerWallCollision(player, &walls[18], collisionState);
-    playerWallCollision(player, &walls[19], collisionState);
+    PlayerWallCollision(player, &walls[10], collision_state);
+    PlayerWallCollision(player, &walls[11], collision_state);
+    PlayerWallCollision(player, &walls[12], collision_state);
+    PlayerWallCollision(player, &walls[13], collision_state);
+    PlayerWallCollision(player, &walls[14], collision_state);
+    PlayerWallCollision(player, &walls[15], collision_state);
+    PlayerWallCollision(player, &walls[16], collision_state);
+    PlayerWallCollision(player, &walls[17], collision_state);
+    PlayerWallCollision(player, &walls[18], collision_state);
+    PlayerWallCollision(player, &walls[19], collision_state);
 
-    playerWallCollision(player, &walls[20], collisionState);
-    playerWallCollision(player, &walls[21], collisionState);
-    playerWallCollision(player, &walls[22], collisionState);
-    playerWallCollision(player, &walls[23], collisionState);
-    playerWallCollision(player, &walls[24], collisionState);
-    playerWallCollision(player, &walls[25], collisionState);
-    playerWallCollision(player, &walls[26], collisionState);
-    playerWallCollision(player, &walls[27], collisionState);
-    playerWallCollision(player, &walls[28], collisionState);
-    playerWallCollision(player, &walls[29], collisionState);
+    PlayerWallCollision(player, &walls[20], collision_state);
+    PlayerWallCollision(player, &walls[21], collision_state);
+    PlayerWallCollision(player, &walls[22], collision_state);
+    PlayerWallCollision(player, &walls[23], collision_state);
+    PlayerWallCollision(player, &walls[24], collision_state);
+    PlayerWallCollision(player, &walls[25], collision_state);
+    PlayerWallCollision(player, &walls[26], collision_state);
+    PlayerWallCollision(player, &walls[27], collision_state);
+    PlayerWallCollision(player, &walls[28], collision_state);
+    PlayerWallCollision(player, &walls[29], collision_state);
 
-    playerWallCollision(player, &walls[30], collisionState);
-    playerWallCollision(player, &walls[31], collisionState);
-    playerWallCollision(player, &walls[32], collisionState);
-    playerWallCollision(player, &walls[33], collisionState);
-    playerWallCollision(player, &walls[34], collisionState);
-    playerWallCollision(player, &walls[35], collisionState);
-    playerWallCollision(player, &walls[36], collisionState);
-    playerWallCollision(player, &walls[37], collisionState);
-    playerWallCollision(player, &walls[38], collisionState);
-    playerWallCollision(player, &walls[39], collisionState);
+    PlayerWallCollision(player, &walls[30], collision_state);
+    PlayerWallCollision(player, &walls[31], collision_state);
+    PlayerWallCollision(player, &walls[32], collision_state);
+    PlayerWallCollision(player, &walls[33], collision_state);
+    PlayerWallCollision(player, &walls[34], collision_state);
+    PlayerWallCollision(player, &walls[35], collision_state);
+    PlayerWallCollision(player, &walls[36], collision_state);
+    PlayerWallCollision(player, &walls[37], collision_state);
+    PlayerWallCollision(player, &walls[38], collision_state);
+    PlayerWallCollision(player, &walls[39], collision_state);
 
-    playerWallCollision(player, &walls[40], collisionState);
-    playerWallCollision(player, &walls[41], collisionState);
-    playerWallCollision(player, &walls[42], collisionState);
-    playerWallCollision(player, &walls[43], collisionState);
-    playerWallCollision(player, &walls[44], collisionState);
+    PlayerWallCollision(player, &walls[40], collision_state);
+    PlayerWallCollision(player, &walls[41], collision_state);
+    PlayerWallCollision(player, &walls[42], collision_state);
+    PlayerWallCollision(player, &walls[43], collision_state);
+    PlayerWallCollision(player, &walls[44], collision_state);
 
     /* Player PLatform Collisions */
-    playerPlatformCollision(player, &platforms[0], collisionState);
-    playerPlatformCollision(player, &platforms[1], collisionState);
-    playerPlatformCollision(player, &platforms[2], collisionState);
-    playerPlatformCollision(player, &platforms[3], collisionState);
-    playerPlatformCollision(player, &platforms[4], collisionState);
-    playerPlatformCollision(player, &platforms[5], collisionState);
-    playerPlatformCollision(player, &platforms[6], collisionState);
-    playerPlatformCollision(player, &platforms[7], collisionState);
-    playerPlatformCollision(player, &platforms[8], collisionState);
-    playerPlatformCollision(player, &platforms[9], collisionState);
-    playerPlatformCollision(player, &platforms[10], collisionState);
-    playerPlatformCollision(player, &platforms[11], collisionState);
-    playerPlatformCollision(player, &platforms[12], collisionState);
-    playerPlatformCollision(player, &platforms[13], collisionState);
+    PlayerPlatformCollision(player, &platforms[0], collision_state);
+    PlayerPlatformCollision(player, &platforms[1], collision_state);
+    PlayerPlatformCollision(player, &platforms[2], collision_state);
+    PlayerPlatformCollision(player, &platforms[3], collision_state);
+    PlayerPlatformCollision(player, &platforms[4], collision_state);
+    PlayerPlatformCollision(player, &platforms[5], collision_state);
+    PlayerPlatformCollision(player, &platforms[6], collision_state);
+    PlayerPlatformCollision(player, &platforms[7], collision_state);
+    PlayerPlatformCollision(player, &platforms[8], collision_state);
+    PlayerPlatformCollision(player, &platforms[9], collision_state);
+    PlayerPlatformCollision(player, &platforms[10], collision_state);
+    PlayerPlatformCollision(player, &platforms[11], collision_state);
+    PlayerPlatformCollision(player, &platforms[12], collision_state);
+    PlayerPlatformCollision(player, &platforms[13], collision_state);
 }
 
-void freeAndCloseResources(SDL_Surface *PlayerSurf, SDL_Texture *PlayerTex,
-                           SDL_Surface *WallSurf, SDL_Texture *WallTex,
+void FreeAndCloseResources(SDL_Surface *player_surf, SDL_Texture *player_tex,
+                           SDL_Surface *wall_surf, SDL_Texture *wall_tex,
                            Mix_Music *music, SDL_Renderer *rend,
                            SDL_Window *win,
                            SDL_GameController *gamecontroller) {
     /* Free resources and close SDL and SDL mixer */
-    Mix_FreeMusic(music); // Free the music
+    Mix_FreeMusic(music);  // Free the music
 
     // Deallocate textues and surfaces
-    SDL_FreeSurface(PlayerSurf);   // Deallocate player and scene surfaces
-    SDL_DestroyTexture(PlayerTex); // Destroy scene and player textures
-    SDL_FreeSurface(WallSurf);     // Deallocate player and scene surfaces
-    SDL_DestroyTexture(WallTex);   // Destroy scene and player textures
+    SDL_FreeSurface(player_surf);    // Deallocate player and scene surfaces
+    SDL_DestroyTexture(player_tex);  // Destroy scene and player textures
+    SDL_FreeSurface(wall_surf);      // Deallocate player and scene surfaces
+    SDL_DestroyTexture(wall_tex);    // Destroy scene and player textures
 
     // Close Game Controller
     SDL_GameControllerClose(gamecontroller);
 
-    SDL_DestroyRenderer(rend); // Destroy renderer
-    SDL_DestroyWindow(win);    // Destroy window
-    Mix_CloseAudio();          // Close Audio
-    IMG_Quit();                // Close Image
-    SDL_Quit();                // Quit SDL subsystems
+    SDL_DestroyRenderer(rend);  // Destroy renderer
+    SDL_DestroyWindow(win);     // Destroy window
+    Mix_CloseAudio();           // Close Audio
+    IMG_Quit();                 // Close Image
+    SDL_Quit();                 // Quit SDL subsystems
 }
