@@ -277,12 +277,10 @@ int main() {
     /* Gameplay Loop */
     bool quit = false; // gameplay loop switch
 
-#pragma unroll
     while (!quit) { // gameplay loop
         /* Click Key Bindings */
         SDL_Event event; // Event handling
 
-#pragma unroll
         while (SDL_PollEvent(&event) == 1) { // Events management
             // Click Keybindings
             quit = clickKeybindings(event, &player.motionState,
