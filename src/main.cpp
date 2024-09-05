@@ -89,7 +89,7 @@ int main() {
     // Creates a renderer to render the images
     // * SDL_RENDERER_SOFTWARE starts the program using the CPU hardware
     // * SDL_RENDERER_ACCELERATED starts the program using the GPU hardware
-    SDL_Renderer *rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_SOFTWARE);
+    SDL_Renderer *rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
     SDL_SetRenderDrawColor(rend, 134, 191, 255, 255);
 
     /* Loads images, music, and soundeffects */
