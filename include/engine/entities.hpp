@@ -33,4 +33,10 @@ typedef struct Platform {
     SDL_Rect dstrect;      // player destination
 } Platform;
 
+typedef struct Background {
+    SDL_Texture *texture;  // player texture
+    SDL_Rect srcrect;      // player source from the player spritesheet
+    SDL_Rect dstrect;      // player destination
+} Background;
+
 #endif  // ENTITIES_HPP
