@@ -47,14 +47,14 @@ int main() {
     const int platform_height = 12;
 
     /* Mixer */
-    const int music_volume = MIX_MAX_VOLUME;
+    const int music_volume = MIX_MAX_VOLUME/2;
     const int chunksize = 1024;
 
     /* Paths to the assets of the game */
-    const char *player_path = "assets/art/player.png";
-    const char *wall_path = "assets/art/wall.png";
+    const char *player_path = "assets/player/player.png";
+    const char *wall_path = "assets/tiles/wall.png";
     const char *music_path = "assets/music/downhill.ogg";
-    const char *platform_path = "assets/art/platform.png";
+    const char *platform_path = "assets/tiles/platform.png";
 
     /* Initialize SDL, window, audio, and renderer */
     int sdl_status = SDL_Init(
@@ -168,7 +168,7 @@ int main() {
     SDL_Rect w_dstrect = {LEVEL_WIDTH - 200, LEVEL_HEIGHT - 200, wall_width,
                           wall_height};
 
-    SDL_Rect w_srcrect = {0, 0, wall_width, wall_height};
+    SDL_Rect w_srcrect = {0, 0, 512, 512};
     Wall wall;
     wall.dstrect = w_dstrect;
     wall.srcrect = w_srcrect;
