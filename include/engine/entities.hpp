@@ -21,11 +21,11 @@ typedef struct Player {
     MotionState motion_state;
 } Player;
 
-typedef struct Wall {
+typedef struct Block {
     SDL_Texture *texture;  // player texture
     SDL_Rect srcrect;      // player source from the player spritesheet
     SDL_Rect dstrect;      // player destination
-} Wall;
+} Block;
 
 typedef struct Platform {
     SDL_Texture *texture;  // player texture
