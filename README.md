@@ -11,7 +11,7 @@ A simple 2D palformer game written in C++ using SDL2.
 	* build-essential (Debian and Ubuntu distros and its derivatives)
 * libsdl2-dev
 * libsdl2-mixer-dev
-* libsld2-image-dev
+* libsdl2-image-dev
 * cmake
 
 ## Manual Install (Ubuntu 22.04.2 LTS)
