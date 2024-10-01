@@ -241,11 +241,12 @@ int main() {
 
     // Blocks
     std::array<Block, 52> blocks = {
-        block, block, block, block, block, block, block, block, block, block, block,
-        block, block, block, block, block, block, block, block, block, block, block,
-        block, block, block, block, block, block, block, block, block, block, block,
-        block, block, block, block, block, block, block, block, block, block, block,
-        block, block, block, block, block, block, block, block,
+        block, block, block, block, block, block, block, block, block,
+        block, block, block, block, block, block, block, block, block,
+        block, block, block, block, block, block, block, block, block,
+        block, block, block, block, block, block, block, block, block,
+        block, block, block, block, block, block, block, block, block,
+        block, block, block, block, block, block, block,
     };
 
     // Platforms
@@ -682,8 +683,8 @@ void FreeAndCloseResources(SDL_Surface *player_surf, SDL_Texture *player_tex,
     // Deallocate textues and surfaces
     SDL_FreeSurface(player_surf);    // Deallocate player and scene surfaces
     SDL_DestroyTexture(player_tex);  // Destroy scene and player textures
-    SDL_FreeSurface(block_surf);      // Deallocate player and scene surfaces
-    SDL_DestroyTexture(block_tex);    // Destroy scene and player textures
+    SDL_FreeSurface(block_surf);     // Deallocate player and scene surfaces
+    SDL_DestroyTexture(block_tex);   // Destroy scene and player textures
 
     // Close Game Controller
     SDL_GameControllerClose(gamecontroller);

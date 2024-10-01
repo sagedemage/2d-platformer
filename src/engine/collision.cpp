@@ -1,7 +1,7 @@
 #include "collision.hpp"
 
 void PlayerBlockCollision(Player *player, Block *block,
-                         CollisionState *collision_state) {
+                          CollisionState *collision_state) {
     const int offset = 5;
 
     const int p_width = player->dstrect.w;
