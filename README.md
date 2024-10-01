@@ -11,21 +11,16 @@ A simple 2D palformer game written in C++ using SDL2.
 	* build-essential (Debian and Ubuntu distros and its derivatives)
 * libsdl2-dev
 * libsdl2-mixer-dev
-* libsld2-image-dev
+* libsdl2-image-dev
 * cmake
 
 ## Manual Install (Ubuntu 22.04.2 LTS)
 [manual_install_sdl2](./manual_install_sdl2.md)
 
 ## Building the project
-Go the root of my repository
-```
-cd minimal-2d-platformer-sdl2
-```
-
 Set up the build directory
 ```
-cmake -B build
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -B build
 ```
 
 Go to build directory
