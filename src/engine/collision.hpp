@@ -6,7 +6,7 @@
 void PlayerPlatformCollision(Player *player, Platform *platform,
                              CollisionState *collision_state);
 
-void PlayerWallCollision(Player *player, Wall *wall,
+void PlayerBlockCollision(Player *player, Block *block,
                          CollisionState *collision_state);
 
 #endif  // COLLISION_HPP
