@@ -43,6 +43,9 @@ int main() {
     const int wall_width = 24;
     const int wall_height = 24;
 
+    const int wall_source_width = 512;
+    const int wall_source_height = 512;
+
     const int platform_width = 24;
     const int platform_height = 12;
 
@@ -168,7 +171,7 @@ int main() {
     SDL_Rect w_dstrect = {LEVEL_WIDTH - 200, LEVEL_HEIGHT - 200, wall_width,
                           wall_height};
 
-    SDL_Rect w_srcrect = {0, 0, 512, 512};
+    SDL_Rect w_srcrect = {0, 0, wall_source_width, wall_source_height};
     Wall wall;
     wall.dstrect = w_dstrect;
     wall.srcrect = w_srcrect;
