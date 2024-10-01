@@ -37,13 +37,3 @@ Compile the project
 ```
 cmake --build .
 ```
-
-## Setup Editor for VSCode
-Go to `~/.config/Code/User/settings.json`
-Add this line if it does not exist
-```
-"C_Cpp.clang_format_fallbackStyle": "{ BaseOnStyle: Google, IndentWidth: 4, TabWidth: 4 }"
-```
-
-## Assets (Music, Art and Soundeffects)
-<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />I created the music, art and soundeffects for this game. The assets are licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
