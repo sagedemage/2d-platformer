@@ -18,7 +18,7 @@ void PlayerBoundary(Player *player);
 
 void RenderSprites(SDL_Renderer *rend, Player player,
                    std::array<Wall, 45> walls,
-                   std::array<Platform, 14> platforms);
+                   std::array<Platform, 14> platforms, Background background);
 
 void SetPosition(SDL_Rect *dstrect, Coord2D pos);
 
@@ -53,6 +53,13 @@ int main() {
     const int platform_source_width = 512;
     const int platform_source_height = 512;
 
+    // Background dimensions
+    const int background_width = LEVEL_WIDTH;
+    const int background_height = LEVEL_HEIGHT;
+
+    const int background_source_width = 1536;
+    const int background_source_height = 1024;
+
     /* Mixer */
     const int music_volume = MIX_MAX_VOLUME / 2;
     const int chunksize = 1024;
@@ -62,6 +69,7 @@ int main() {
     const char *wall_path = "assets/tiles/wall.png";
     const char *music_path = "assets/music/downhill.ogg";
     const char *platform_path = "assets/tiles/platform.png";
+    const char *background_path = "assets/background/background.png";
 
     /* Initialize SDL, window, audio, and renderer */
     int sdl_status = SDL_Init(
@@ -128,6 +136,15 @@ int main() {
         return -1;
     }
 
+    SDL_Surface *background_surf = IMG_Load(background_path);
+
+    if (background_surf == NULL) {
+        std::string debug_msg =
+            "IMG_Load: " + static_cast<std::string>(IMG_GetError());
+        std::cerr << debug_msg << std::endl;
+        return -1;
+    }
+
     Mix_Music *music = Mix_LoadMUS(music_path);
 
     if (music == NULL) {
@@ -138,7 +155,7 @@ int main() {
     }
 
     // Loads images to our graphics hardware memory
-    // Player
+    // Player structure
     SDL_Texture *player_tex = SDL_CreateTextureFromSurface(rend, player_surf);
     SDL_Rect p_dstrect = {0 + player_offset,
                           LEVEL_HEIGHT - player_height - player_offset,
@@ -162,7 +179,28 @@ int main() {
     player.motion_state = motion_state;
     player.collision_state = collision_state;
 
-    // Wall
+    // Background structure
+    SDL_Texture *background_tex =
+        SDL_CreateTextureFromSurface(rend, background_surf);
+
+    if (background_tex == NULL) {
+        std::string debug_msg = "SDL_CreateTextureFromSurface: " +
+                                static_cast<std::string>(SDL_GetError());
+        std::cerr << debug_msg << std::endl;
+        return -1;
+    }
+
+    SDL_Rect b_dstrect = {0, 0, background_width, background_height};
+
+    SDL_Rect b_srcrect = {0, 0, background_source_width,
+                          background_source_height};
+
+    Background background;
+    background.dstrect = b_dstrect;
+    background.srcrect = b_srcrect;
+    background.texture = background_tex;
+
+    // Wall structure
     SDL_Texture *wall_tex = SDL_CreateTextureFromSurface(rend, wall_surf);
 
     if (wall_tex == NULL) {
@@ -181,7 +219,7 @@ int main() {
     wall.srcrect = w_srcrect;
     wall.texture = wall_tex;
 
-    // Platform
+    // Platform structure
     SDL_Texture *platform_tex =
         SDL_CreateTextureFromSurface(rend, platform_surf);
 
@@ -374,7 +412,7 @@ int main() {
         PlayerBoundary(&player);
 
         /* Render sprites */
-        RenderSprites(rend, player, walls, platforms);
+        RenderSprites(rend, player, walls, platforms, background);
 
         /* Gravity */
         Gravity(&player);
@@ -416,13 +454,17 @@ void PlayerBoundary(Player *player) {
 
 void RenderSprites(SDL_Renderer *rend, Player player,
                    std::array<Wall, 45> walls,
-                   std::array<Platform, 14> platforms) {
+                   std::array<Platform, 14> platforms, Background background) {
     /* Frames per second */
     const int miliseconds = 1000;    // 1000 ms equals 1s
     const int gameplay_frames = 60;  // amount of frames per second
 
     /* Render sprites */
     SDL_RenderClear(rend);
+
+    // Render background
+    SDL_RenderCopy(rend, background.texture, &background.srcrect,
+                   &background.dstrect);
 
     // Render Walls
     SDL_RenderCopy(rend, walls[0].texture, &walls[0].srcrect,
