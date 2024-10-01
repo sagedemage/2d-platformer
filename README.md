@@ -1,4 +1,4 @@
-# minimal-2d-platformer-sdl2
+# 2d-platformer
 
 ## Gameplay
 ![](screenshots/2d_platformer.webp)
