@@ -20,7 +20,7 @@ A simple 2D palformer game written in C++ using SDL2.
 ## Building the project
 Set up the build directory
 ```
-cmake -B build
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -B build
 ```
 
 Go to build directory
