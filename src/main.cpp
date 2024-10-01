@@ -32,25 +32,29 @@ void PlayerObjectCollisions(Player *player, std::array<Wall, 45> walls,
                             CollisionState *collision_state);
 
 int main() {
-    /* Player Attributes */
+    // Player Attributes
     const int player_width = 24;
     const int player_height = 24;
-
     const int player_speed = 2;    // speed of player
     const int player_offset = 24;  // gap between left corner of the window
     const int player_accel = 4;
 
+    // Wall dimensions
     const int wall_width = 24;
     const int wall_height = 24;
 
     const int wall_source_width = 512;
     const int wall_source_height = 512;
 
+    // Platform dimensions
     const int platform_width = 24;
-    const int platform_height = 12;
+    const int platform_height = 24;
+
+    const int platform_source_width = 512;
+    const int platform_source_height = 512;
 
     /* Mixer */
-    const int music_volume = MIX_MAX_VOLUME/2;
+    const int music_volume = MIX_MAX_VOLUME / 2;
     const int chunksize = 1024;
 
     /* Paths to the assets of the game */
@@ -191,7 +195,7 @@ int main() {
     SDL_Rect pl_dstrect = {LEVEL_WIDTH - 200, LEVEL_HEIGHT - 200,
                            platform_width, platform_height};
 
-    SDL_Rect pl_srcrect = {0, 0, platform_width, platform_height};
+    SDL_Rect pl_srcrect = {0, 0, platform_source_width, platform_source_height};
     Platform platform;
     platform.dstrect = pl_dstrect;
     platform.srcrect = pl_srcrect;
