@@ -18,11 +18,6 @@ A simple 2D palformer game written in C++ using SDL2.
 [manual_install_sdl2](./manual_install_sdl2.md)
 
 ## Building the project
-Go the root of my repository
-```
-cd minimal-2d-platformer-sdl2
-```
-
 Set up the build directory
 ```
 cmake -B build
