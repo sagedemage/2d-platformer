@@ -31,7 +31,7 @@ void PlayerObjectCollisions(Player *player, std::array<Block, 52> blocks,
                             std::array<Platform, 6> platforms,
                             CollisionState *collision_state);
 
-int main() {
+int main(int argv, char** args) {
     // Player Attributes
     const int player_width = 24;
     const int player_height = 24;
