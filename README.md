@@ -1,7 +1,7 @@
 # 2d-platformer
 
 ## Gameplay
-![](screenshots/2d_platformer.webp)
+![](screenshots/2d_platformer.png)
 
 ## About
 A simple 2D palformer game written in C++ using SDL2.
